@@ -6,85 +6,106 @@
   <title>유튜브 댓글 감성 분석</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --accent: #f43f5e; --bg: #080c14; --card: #0e1420; --border: #1e2a3a; --text: #c8d8f0; --muted: #4a6080; }
+    :root { --accent: #f43f5e; --accent2: #fb7185; --bg: #06080f; --card: #0c1018; --border: #1a2436; --text: #c8d8f0; --muted: #4a6080; }
+
     body { background: var(--bg); font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--text); min-height: 100vh; }
     body::before {
-      content: ''; position: fixed; inset: 0;
-      background: radial-gradient(ellipse at 20% 40%, #f43f5e12 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 60%, #fb923c0e 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse at 15% 30%, #f43f5e18 0%, transparent 45%),
+        radial-gradient(ellipse at 85% 70%, #fb923c10 0%, transparent 45%);
     }
-    .wrap { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 0 20px 60px; }
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: radial-gradient(circle, #1e2a3a 1px, transparent 1px);
+      background-size: 32px 32px; opacity: 0.3;
+    }
 
-    .hero { text-align: center; padding: 60px 0 40px; }
-    .hero-badge { display: inline-block; background: var(--card); border: 1px solid var(--border); border-radius: 50px; padding: 5px 18px; font-size: 12px; color: var(--muted); margin-bottom: 20px; }
-    .hero-badge span { color: var(--accent); }
-    .hero h1 { font-size: clamp(26px, 5vw, 40px); font-weight: 900; margin-bottom: 10px; }
+    .wrap { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 0 20px 80px; }
+
+    .hero { text-align: center; padding: 70px 0 44px; }
+    .hero-icon { width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 24px; background: linear-gradient(135deg, #f43f5e, #fb7185); display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 0 40px #f43f5e40; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 50px; padding: 5px 16px; font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+    .hero-badge span { color: var(--accent); font-weight: 700; }
+    .hero h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 900; letter-spacing: -1px; margin-bottom: 12px; }
     .hero h1 em { font-style: normal; background: linear-gradient(135deg, #f43f5e, #fb7185, #fda4af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero p { font-size: 15px; color: var(--muted); }
+    .hero p { font-size: 15px; color: var(--muted); line-height: 1.7; }
 
-    .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 20px; }
-    label { display: block; font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
-    input[type=text] { width: 100%; background: #060a10; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--text); font-size: 14px; font-family: inherit; transition: border-color 0.2s; margin-bottom: 14px; }
-    input[type=text]:focus { outline: none; border-color: var(--accent); }
+    .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 36px; margin-bottom: 20px; position: relative; overflow: hidden; }
+    .form-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #f43f5e, transparent); }
 
-    .btn { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 14px; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
-    .btn:hover { opacity: 0.9; transform: translateY(-2px); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.8px; text-transform: uppercase; }
+    input[type=text] { width: 100%; background: #08101a; border: 1.5px solid var(--border); border-radius: 14px; padding: 14px 18px; color: var(--text); font-size: 14px; font-family: inherit; transition: all 0.2s; margin-bottom: 20px; }
+    input[type=text]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px #f43f5e12; }
 
-    .loading { display: none; text-align: center; padding: 40px; }
+    .btn { width: 100%; padding: 17px; background: linear-gradient(135deg, #f43f5e, #fb7185); border: none; border-radius: 16px; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 24px #f43f5e30; }
+    .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 32px #f43f5e45; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .loading { display: none; padding: 48px 0; text-align: center; }
     .loading.show { display: block; }
-    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
-    .loading-steps { color: var(--muted); font-size: 13px; }
+    .loading-ring { width: 52px; height: 52px; margin: 0 auto 20px; position: relative; }
+    .loading-ring::before, .loading-ring::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent; }
+    .loading-ring::before { border-top-color: #f43f5e; animation: spin 1s linear infinite; }
+    .loading-ring::after { border-bottom-color: #fb7185; animation: spin 1.5s linear infinite reverse; inset: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .loading-steps { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+    .loading-steps span { width: 6px; height: 6px; border-radius: 50%; background: var(--border); animation: pulse 1.2s ease-in-out infinite; }
+    .loading-steps span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-steps span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%, 100% { background: var(--border); transform: scale(1); } 50% { background: #f43f5e; transform: scale(1.4); } }
 
-    .result { display: none; }
+    .result { display: none; animation: fadeUp 0.4s ease; }
     .result.show { display: block; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
-    .sentiment-card { background: var(--card); border: 1px solid var(--accent)33; border-radius: 20px; padding: 28px; margin-bottom: 14px; text-align: center; }
-    .sentiment-label { font-size: 22px; font-weight: 900; color: #e8f0ff; margin-bottom: 6px; }
-    .sentiment-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+    .sentiment-card { background: var(--card); border: 1px solid #f43f5e28; border-radius: 24px; padding: 32px; margin-bottom: 14px; position: relative; overflow: hidden; }
+    .sentiment-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #f43f5e, #fb7185, transparent); }
+    .sentiment-top { text-align: center; margin-bottom: 28px; }
+    .sentiment-label { font-size: 24px; font-weight: 900; color: #e8f0ff; margin-bottom: 6px; }
+    .sentiment-sub { font-size: 13px; color: var(--muted); }
 
-    .bar-group { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+    .bars { display: flex; flex-direction: column; gap: 14px; }
     .bar-item { }
-    .bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .bar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
     .bar-name { font-size: 13px; font-weight: 700; }
-    .bar-pct { font-size: 13px; font-weight: 700; }
+    .bar-pct { font-size: 14px; font-weight: 800; }
     .bar-track { height: 10px; background: var(--border); border-radius: 50px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 50px; transition: width 0.8s ease; width: 0; }
-    .bar-positive .bar-name, .bar-positive .bar-pct { color: #10b981; }
-    .bar-positive .bar-fill { background: #10b981; }
-    .bar-negative .bar-name, .bar-negative .bar-pct { color: #f43f5e; }
-    .bar-negative .bar-fill { background: #f43f5e; }
-    .bar-neutral .bar-name, .bar-neutral .bar-pct { color: #6366f1; }
-    .bar-neutral .bar-fill { background: #6366f1; }
+    .bar-fill { height: 100%; border-radius: 50px; width: 0; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
+    .positive .bar-name, .positive .bar-pct { color: #10b981; }
+    .positive .bar-fill { background: linear-gradient(90deg, #10b981, #34d399); }
+    .negative .bar-name, .negative .bar-pct { color: #f43f5e; }
+    .negative .bar-fill { background: linear-gradient(90deg, #f43f5e, #fb7185); }
+    .neutral .bar-name, .neutral .bar-pct { color: #6366f1; }
+    .neutral .bar-fill { background: linear-gradient(90deg, #6366f1, #818cf8); }
 
-    .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 14px; }
-    .section-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px; letter-spacing: 0.5px; }
-    .summary-text { font-size: 15px; line-height: 1.8; color: var(--text); }
-    .best-comment { background: #060a10; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; color: #fda4af; font-style: italic; line-height: 1.7; margin-top: 12px; }
+    .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px; margin-bottom: 14px; transition: border-color 0.2s; }
+    .section-card:hover { border-color: #2a3a54; }
+    .section-title { font-size: 11px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .summary-text { font-size: 15px; line-height: 1.85; color: var(--text); }
+    .best-comment { margin-top: 16px; background: #f43f5e0a; border-left: 3px solid #f43f5e44; border-radius: 0 10px 10px 0; padding: 12px 16px; font-size: 14px; color: #fda4af; font-style: italic; line-height: 1.7; }
 
-    .keywords { display: flex; flex-wrap: wrap; gap: 8px; }
-    .kw { background: #f43f5e12; border: 1px solid #f43f5e30; border-radius: 50px; padding: 5px 14px; font-size: 13px; color: var(--accent); }
+    .kw-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+    .kw { background: #f43f5e10; border: 1px solid #f43f5e28; border-radius: 50px; padding: 5px 14px; font-size: 13px; color: var(--accent); }
 
-    .comments-list { display: flex; flex-direction: column; gap: 10px; }
-    .comment-item { background: #060a10; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--text); line-height: 1.6; border-left: 2px solid var(--border); }
+    .comments { display: flex; flex-direction: column; gap: 10px; }
+    .comment-item { background: #06090f; border: 1px solid var(--border); border-radius: 12px; padding: 13px 16px; font-size: 13px; color: var(--text); line-height: 1.65; border-left: 2px solid #f43f5e22; }
 
-    .analyzed-count { font-size: 12px; color: var(--muted); text-align: right; margin-top: 8px; }
+    .retry-btn { display: block; width: 100%; padding: 15px; margin-top: 14px; background: transparent; border: 1.5px solid var(--border); border-radius: 14px; color: var(--muted); font-size: 14px; cursor: pointer; transition: all 0.2s; }
+    .retry-btn:hover { border-color: var(--accent); color: var(--accent); background: #f43f5e08; }
 
-    .retry-btn { display: block; width: 100%; padding: 14px; margin-top: 6px; background: transparent; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: 14px; cursor: pointer; transition: all 0.2s; }
-    .retry-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-    .error { background: #1a0a10; border: 1px solid #f43f5e44; border-radius: 14px; padding: 16px 20px; color: #f87171; font-size: 14px; display: none; }
+    .error { background: #120810; border: 1px solid #f43f5e35; border-radius: 14px; padding: 14px 18px; color: #f87171; font-size: 14px; display: none; margin-bottom: 16px; }
     .error.show { display: block; }
   </style>
 </head>
 <body>
 <div class="wrap">
   <div class="hero">
+    <div class="hero-icon">📊</div>
     <div class="hero-badge">✦ <span>YouTube</span> · GPT-4o-mini 기반</div>
     <h1>유튜브 댓글 <em>감성 분석</em></h1>
-    <p>유튜브 링크 하나로 댓글 반응을 AI가 분석해드려요</p>
+    <p>유튜브 링크 하나로 댓글 반응을<br>AI가 긍정/부정/중립으로 분석해드려요</p>
   </div>
 
   <div class="form-card">
@@ -96,44 +117,47 @@
   <div class="error" id="error"></div>
 
   <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <p class="loading-steps">댓글을 수집하고 AI가 분석하는 중...<br><span style="font-size:12px;margin-top:6px;display:block">최대 1분 소요될 수 있습니다</span></p>
+    <div class="loading-ring"></div>
+    <div class="loading-text">댓글 수집 후 AI가 분석하는 중...<br><span style="font-size:12px">최대 1분 소요될 수 있어요</span></div>
+    <div class="loading-steps"><span></span><span></span><span></span></div>
   </div>
 
   <div class="result" id="result">
     <div class="sentiment-card">
-      <div class="sentiment-label" id="r-sentiment-label"></div>
-      <div class="sentiment-sub" id="r-analyzed-count"></div>
-      <div class="bar-group">
-        <div class="bar-item bar-positive">
-          <div class="bar-header"><span class="bar-name">긍정</span><span class="bar-pct" id="r-pos-pct">0%</span></div>
-          <div class="bar-track"><div class="bar-fill" id="r-pos-bar"></div></div>
+      <div class="sentiment-top">
+        <div class="sentiment-label" id="r-label"></div>
+        <div class="sentiment-sub" id="r-count"></div>
+      </div>
+      <div class="bars">
+        <div class="bar-item positive">
+          <div class="bar-header"><span class="bar-name">긍정</span><span class="bar-pct" id="pos-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="pos-bar"></div></div>
         </div>
-        <div class="bar-item bar-negative">
-          <div class="bar-header"><span class="bar-name">부정</span><span class="bar-pct" id="r-neg-pct">0%</span></div>
-          <div class="bar-track"><div class="bar-fill" id="r-neg-bar"></div></div>
+        <div class="bar-item negative">
+          <div class="bar-header"><span class="bar-name">부정</span><span class="bar-pct" id="neg-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="neg-bar"></div></div>
         </div>
-        <div class="bar-item bar-neutral">
-          <div class="bar-header"><span class="bar-name">중립</span><span class="bar-pct" id="r-neu-pct">0%</span></div>
-          <div class="bar-track"><div class="bar-fill" id="r-neu-bar"></div></div>
+        <div class="bar-item neutral">
+          <div class="bar-header"><span class="bar-name">중립</span><span class="bar-pct" id="neu-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="neu-bar"></div></div>
         </div>
       </div>
     </div>
 
-    <div class="info-card">
-      <div class="section-title">전반적 반응 요약</div>
+    <div class="section-card">
+      <div class="section-title">💬 전반적 반응</div>
       <div class="summary-text" id="r-summary"></div>
-      <div class="best-comment" id="r-best">"..."</div>
+      <div class="best-comment" id="r-best"></div>
     </div>
 
-    <div class="info-card">
-      <div class="section-title">주요 키워드</div>
-      <div class="keywords" id="r-keywords"></div>
+    <div class="section-card">
+      <div class="section-title">🏷️ 주요 키워드</div>
+      <div class="kw-wrap" id="r-keywords"></div>
     </div>
 
-    <div class="info-card">
-      <div class="section-title">샘플 댓글</div>
-      <div class="comments-list" id="r-comments"></div>
+    <div class="section-card">
+      <div class="section-title">💭 샘플 댓글</div>
+      <div class="comments" id="r-comments"></div>
     </div>
 
     <button class="retry-btn" onclick="retry()">🔄 다른 영상 분석하기</button>
@@ -147,9 +171,7 @@
     err.classList.remove('show');
 
     if (!url) { showError('유튜브 URL을 입력해주세요.'); return; }
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-      showError('올바른 유튜브 URL을 입력해주세요.'); return;
-    }
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) { showError('올바른 유튜브 URL을 입력해주세요.'); return; }
 
     document.getElementById('analyze-btn').disabled = true;
     document.getElementById('loading').classList.add('show');
@@ -173,20 +195,18 @@
   }
 
   function showResult(d) {
-    document.getElementById('r-sentiment-label').textContent = d.sentiment_label;
-    document.getElementById('r-analyzed-count').textContent = `댓글 ${d.total_analyzed}개 분석 완료`;
+    document.getElementById('r-label').textContent = d.sentiment_label;
+    document.getElementById('r-count').textContent = `댓글 ${d.total_analyzed}개 분석 완료`;
 
-    const pos = d.positive_pct || 0;
-    const neg = d.negative_pct || 0;
-    const neu = d.neutral_pct || 0;
-    document.getElementById('r-pos-pct').textContent = pos + '%';
-    document.getElementById('r-neg-pct').textContent = neg + '%';
-    document.getElementById('r-neu-pct').textContent = neu + '%';
+    const pos = d.positive_pct || 0, neg = d.negative_pct || 0, neu = d.neutral_pct || 0;
+    document.getElementById('pos-pct').textContent = pos + '%';
+    document.getElementById('neg-pct').textContent = neg + '%';
+    document.getElementById('neu-pct').textContent = neu + '%';
     setTimeout(() => {
-      document.getElementById('r-pos-bar').style.width = pos + '%';
-      document.getElementById('r-neg-bar').style.width = neg + '%';
-      document.getElementById('r-neu-bar').style.width = neu + '%';
-    }, 100);
+      document.getElementById('pos-bar').style.width = pos + '%';
+      document.getElementById('neg-bar').style.width = neg + '%';
+      document.getElementById('neu-bar').style.width = neu + '%';
+    }, 150);
 
     document.getElementById('r-summary').textContent = d.summary;
     document.getElementById('r-best').textContent = `"${d.best_comment}"`;
@@ -205,9 +225,7 @@
     document.getElementById('result').classList.remove('show');
     document.getElementById('url').value = '';
     document.getElementById('error').classList.remove('show');
-    document.getElementById('r-pos-bar').style.width = '0';
-    document.getElementById('r-neg-bar').style.width = '0';
-    document.getElementById('r-neu-bar').style.width = '0';
+    ['pos-bar','neg-bar','neu-bar'].forEach(id => document.getElementById(id).style.width = '0');
   }
 </script>
 </body>
