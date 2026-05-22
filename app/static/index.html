@@ -100,6 +100,24 @@
   </style>
 </head>
 <body>
+<div class="cold-start-banner">
+  <span class="cold-start-icon">🕐</span>
+  무료 서버를 사용 중이에요. 첫 요청 시 <strong>약 50초</strong> 정도 소요될 수 있으니 잠시만 기다려 주세요.
+</div>
+<style>
+  .cold-start-banner {
+    position: sticky; top: 0; z-index: 100;
+    background: #0c1220;
+    border-bottom: 1px solid #1e2d42;
+    color: #7a9cc0;
+    font-size: 12.5px;
+    text-align: center;
+    padding: 9px 16px;
+    letter-spacing: 0.2px;
+  }
+  .cold-start-banner strong { color: #a0c0e0; }
+  .cold-start-icon { margin-right: 6px; }
+</style>
 <div class="wrap">
   <div class="hero">
     <div class="hero-icon">📊</div>
