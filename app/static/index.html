@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>유튜브 댓글 감성 분석</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --accent: #f43f5e; --bg: #080c14; --card: #0e1420; --border: #1e2a3a; --text: #c8d8f0; --muted: #4a6080; }
+    body { background: var(--bg); font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--text); min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse at 20% 40%, #f43f5e12 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 60%, #fb923c0e 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+    .wrap { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; padding: 0 20px 60px; }
+
+    .hero { text-align: center; padding: 60px 0 40px; }
+    .hero-badge { display: inline-block; background: var(--card); border: 1px solid var(--border); border-radius: 50px; padding: 5px 18px; font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+    .hero-badge span { color: var(--accent); }
+    .hero h1 { font-size: clamp(26px, 5vw, 40px); font-weight: 900; margin-bottom: 10px; }
+    .hero h1 em { font-style: normal; background: linear-gradient(135deg, #f43f5e, #fb7185, #fda4af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero p { font-size: 15px; color: var(--muted); }
+
+    .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 8px; }
+    input[type=text] { width: 100%; background: #060a10; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--text); font-size: 14px; font-family: inherit; transition: border-color 0.2s; margin-bottom: 14px; }
+    input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+    .btn { width: 100%; padding: 16px; background: var(--accent); border: none; border-radius: 14px; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .loading { display: none; text-align: center; padding: 40px; }
+    .loading.show { display: block; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    .loading-steps { color: var(--muted); font-size: 13px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result { display: none; }
+    .result.show { display: block; }
+
+    .sentiment-card { background: var(--card); border: 1px solid var(--accent)33; border-radius: 20px; padding: 28px; margin-bottom: 14px; text-align: center; }
+    .sentiment-label { font-size: 22px; font-weight: 900; color: #e8f0ff; margin-bottom: 6px; }
+    .sentiment-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+
+    .bar-group { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+    .bar-item { }
+    .bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .bar-name { font-size: 13px; font-weight: 700; }
+    .bar-pct { font-size: 13px; font-weight: 700; }
+    .bar-track { height: 10px; background: var(--border); border-radius: 50px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 50px; transition: width 0.8s ease; width: 0; }
+    .bar-positive .bar-name, .bar-positive .bar-pct { color: #10b981; }
+    .bar-positive .bar-fill { background: #10b981; }
+    .bar-negative .bar-name, .bar-negative .bar-pct { color: #f43f5e; }
+    .bar-negative .bar-fill { background: #f43f5e; }
+    .bar-neutral .bar-name, .bar-neutral .bar-pct { color: #6366f1; }
+    .bar-neutral .bar-fill { background: #6366f1; }
+
+    .info-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 14px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px; letter-spacing: 0.5px; }
+    .summary-text { font-size: 15px; line-height: 1.8; color: var(--text); }
+    .best-comment { background: #060a10; border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; color: #fda4af; font-style: italic; line-height: 1.7; margin-top: 12px; }
+
+    .keywords { display: flex; flex-wrap: wrap; gap: 8px; }
+    .kw { background: #f43f5e12; border: 1px solid #f43f5e30; border-radius: 50px; padding: 5px 14px; font-size: 13px; color: var(--accent); }
+
+    .comments-list { display: flex; flex-direction: column; gap: 10px; }
+    .comment-item { background: #060a10; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--text); line-height: 1.6; border-left: 2px solid var(--border); }
+
+    .analyzed-count { font-size: 12px; color: var(--muted); text-align: right; margin-top: 8px; }
+
+    .retry-btn { display: block; width: 100%; padding: 14px; margin-top: 6px; background: transparent; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: 14px; cursor: pointer; transition: all 0.2s; }
+    .retry-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .error { background: #1a0a10; border: 1px solid #f43f5e44; border-radius: 14px; padding: 16px 20px; color: #f87171; font-size: 14px; display: none; }
+    .error.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="hero-badge">✦ <span>YouTube</span> · GPT-4o-mini 기반</div>
+    <h1>유튜브 댓글 <em>감성 분석</em></h1>
+    <p>유튜브 링크 하나로 댓글 반응을 AI가 분석해드려요</p>
+  </div>
+
+  <div class="form-card">
+    <label>유튜브 영상 URL</label>
+    <input type="text" id="url" placeholder="https://www.youtube.com/watch?v=...">
+    <button class="btn" id="analyze-btn" onclick="analyze()">분석하기 →</button>
+  </div>
+
+  <div class="error" id="error"></div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p class="loading-steps">댓글을 수집하고 AI가 분석하는 중...<br><span style="font-size:12px;margin-top:6px;display:block">최대 1분 소요될 수 있습니다</span></p>
+  </div>
+
+  <div class="result" id="result">
+    <div class="sentiment-card">
+      <div class="sentiment-label" id="r-sentiment-label"></div>
+      <div class="sentiment-sub" id="r-analyzed-count"></div>
+      <div class="bar-group">
+        <div class="bar-item bar-positive">
+          <div class="bar-header"><span class="bar-name">긍정</span><span class="bar-pct" id="r-pos-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="r-pos-bar"></div></div>
+        </div>
+        <div class="bar-item bar-negative">
+          <div class="bar-header"><span class="bar-name">부정</span><span class="bar-pct" id="r-neg-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="r-neg-bar"></div></div>
+        </div>
+        <div class="bar-item bar-neutral">
+          <div class="bar-header"><span class="bar-name">중립</span><span class="bar-pct" id="r-neu-pct">0%</span></div>
+          <div class="bar-track"><div class="bar-fill" id="r-neu-bar"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <div class="section-title">전반적 반응 요약</div>
+      <div class="summary-text" id="r-summary"></div>
+      <div class="best-comment" id="r-best">"..."</div>
+    </div>
+
+    <div class="info-card">
+      <div class="section-title">주요 키워드</div>
+      <div class="keywords" id="r-keywords"></div>
+    </div>
+
+    <div class="info-card">
+      <div class="section-title">샘플 댓글</div>
+      <div class="comments-list" id="r-comments"></div>
+    </div>
+
+    <button class="retry-btn" onclick="retry()">🔄 다른 영상 분석하기</button>
+  </div>
+</div>
+
+<script>
+  async function analyze() {
+    const url = document.getElementById('url').value.trim();
+    const err = document.getElementById('error');
+    err.classList.remove('show');
+
+    if (!url) { showError('유튜브 URL을 입력해주세요.'); return; }
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+      showError('올바른 유튜브 URL을 입력해주세요.'); return;
+    }
+
+    document.getElementById('analyze-btn').disabled = true;
+    document.getElementById('loading').classList.add('show');
+    document.getElementById('result').classList.remove('show');
+
+    try {
+      const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || '분석 중 오류가 발생했습니다.');
+      showResult(data);
+    } catch (e) {
+      showError(e.message);
+    } finally {
+      document.getElementById('analyze-btn').disabled = false;
+      document.getElementById('loading').classList.remove('show');
+    }
+  }
+
+  function showResult(d) {
+    document.getElementById('r-sentiment-label').textContent = d.sentiment_label;
+    document.getElementById('r-analyzed-count').textContent = `댓글 ${d.total_analyzed}개 분석 완료`;
+
+    const pos = d.positive_pct || 0;
+    const neg = d.negative_pct || 0;
+    const neu = d.neutral_pct || 0;
+    document.getElementById('r-pos-pct').textContent = pos + '%';
+    document.getElementById('r-neg-pct').textContent = neg + '%';
+    document.getElementById('r-neu-pct').textContent = neu + '%';
+    setTimeout(() => {
+      document.getElementById('r-pos-bar').style.width = pos + '%';
+      document.getElementById('r-neg-bar').style.width = neg + '%';
+      document.getElementById('r-neu-bar').style.width = neu + '%';
+    }, 100);
+
+    document.getElementById('r-summary').textContent = d.summary;
+    document.getElementById('r-best').textContent = `"${d.best_comment}"`;
+    document.getElementById('r-keywords').innerHTML = (d.keywords || []).map(k => `<span class="kw">${k}</span>`).join('');
+    document.getElementById('r-comments').innerHTML = (d.sample_comments || []).map(c => `<div class="comment-item">${c}</div>`).join('');
+    document.getElementById('result').classList.add('show');
+  }
+
+  function showError(msg) {
+    const err = document.getElementById('error');
+    err.textContent = msg;
+    err.classList.add('show');
+  }
+
+  function retry() {
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('url').value = '';
+    document.getElementById('error').classList.remove('show');
+    document.getElementById('r-pos-bar').style.width = '0';
+    document.getElementById('r-neg-bar').style.width = '0';
+    document.getElementById('r-neu-bar').style.width = '0';
+  }
+</script>
+</body>
+</html>
