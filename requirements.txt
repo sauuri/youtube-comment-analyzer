@@ -3,4 +3,4 @@ uvicorn[standard]
 openai
 pydantic-settings
 python-dotenv
-youtube-comment-downloader
+httpx

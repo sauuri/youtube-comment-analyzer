@@ -1,9 +1,9 @@
-import json, pathlib, itertools
+import json, re, pathlib
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from openai import AsyncOpenAI
-from youtube_comment_downloader import YoutubeCommentDownloader, SORT_BY_POPULAR
+import httpx
 from app.config import settings
 
 app = FastAPI()
@@ -13,6 +13,18 @@ BASE = pathlib.Path(__file__).parent
 class AnalyzeRequest(BaseModel):
     url: str
 
+def extract_video_id(url: str) -> str:
+    patterns = [
+        r'youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',
+        r'youtu\.be/([a-zA-Z0-9_-]{11})',
+        r'youtube\.com/shorts/([a-zA-Z0-9_-]{11})',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    raise ValueError("유효한 유튜브 URL이 아닙니다")
+
 @app.get("/")
 async def root():
     return FileResponse(BASE / "static/index.html")
@@ -20,14 +32,36 @@ async def root():
 @app.post("/analyze")
 async def analyze(req: AnalyzeRequest):
     try:
-        downloader = YoutubeCommentDownloader()
-        gen = downloader.get_comments_from_url(req.url, sort_by=SORT_BY_POPULAR)
-        comments = [c["text"] for c in itertools.islice(gen, 80)]
-    except Exception as e:
-        raise HTTPException(400, f"댓글을 가져올 수 없습니다: {str(e)}")
+        video_id = extract_video_id(req.url)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
-    if not comments:
-        raise HTTPException(404, "댓글이 없거나 비공개 영상입니다")
+    async with httpx.AsyncClient(timeout=15) as http:
+        r = await http.get(
+            "https://www.googleapis.com/youtube/v3/commentThreads",
+            params={
+                "part": "snippet",
+                "videoId": video_id,
+                "key": settings.youtube_api_key,
+                "maxResults": 100,
+                "order": "relevance",
+                "textFormat": "plainText",
+            }
+        )
+
+    data = r.json()
+
+    if "error" in data:
+        raise HTTPException(400, data["error"].get("message", "YouTube API 오류"))
+
+    items = data.get("items", [])
+    if not items:
+        raise HTTPException(404, "댓글이 없거나 댓글이 비활성화된 영상입니다")
+
+    comments = [
+        item["snippet"]["topLevelComment"]["snippet"]["textDisplay"]
+        for item in items
+    ]
 
     comments_text = "\n".join(f"- {c}" for c in comments[:60])
 
@@ -36,7 +70,7 @@ async def analyze(req: AnalyzeRequest):
         messages=[
             {
                 "role": "system",
-                "content": "유튜브 댓글 분석 전문가입니다. 댓글의 감성과 주요 반응을 분석하고 JSON으로만 응답합니다."
+                "content": "유튜브 댓글 분석 전문가입니다. JSON으로만 응답합니다."
             },
             {
                 "role": "user",
