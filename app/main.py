@@ -25,6 +25,15 @@ def extract_video_id(url: str) -> str:
             return match.group(1)
     raise ValueError("유효한 유튜브 URL이 아닙니다")
 
+@app.get("/debug-env")
+async def debug_env():
+    import os
+    return {
+        "youtube_api_key_set": bool(settings.youtube_api_key),
+        "youtube_api_key_len": len(settings.youtube_api_key),
+        "youtube_api_key_env": bool(os.environ.get("YOUTUBE_API_KEY")),
+    }
+
 @app.get("/")
 async def root():
     return FileResponse(BASE / "static/index.html")
